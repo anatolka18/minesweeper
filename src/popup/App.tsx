@@ -110,7 +110,6 @@ const GamePage: React.FC = () => {
   const { settings } = useSettings();
   const { width, height, withTimer } = settings;
 
-  // игра всегда начинается с 'playing', idle больше нет
   const [gameStatus, setGameStatus] = useState<'playing' | 'won' | 'lost'>('playing');
   const [remainingTime, setRemainingTime] = useState<number | null>(null);
   const timerRef = useRef<number | null>(null);
@@ -144,23 +143,24 @@ const GamePage: React.FC = () => {
     [sizeDiff]
   );
 
+  const requestResizeRef = useRef(requestWindowResize);
   useEffect(() => {
-    if (!sizeDiff) return;
+    requestResizeRef.current = requestWindowResize;
+  }, [requestWindowResize]);
 
-    if (gameStatus === 'playing') {
-      const innerW = width * CELL_SIZE + MAIN_PADDING;
-      const innerH = height * CELL_SIZE + HEADER_HEIGHT + MAIN_PADDING;
-      requestWindowResize(innerW, innerH);
-    } else {
-      requestWindowResize(DEFAULT_WIDTH, DEFAULT_HEIGHT);
-    }
-
-    return () => {
-      requestWindowResize(DEFAULT_WIDTH, DEFAULT_HEIGHT);
-    };
+  useEffect(() => {
+    if (!sizeDiff || gameStatus !== 'playing') return;
+    const innerW = width * CELL_SIZE + MAIN_PADDING;
+    const innerH = height * CELL_SIZE + HEADER_HEIGHT + MAIN_PADDING;
+    requestWindowResize(innerW, innerH);
   }, [gameStatus, width, height, requestWindowResize, sizeDiff]);
 
-  // запуск таймера при старте игры
+  useEffect(() => {
+    return () => {
+      requestResizeRef.current?.(DEFAULT_WIDTH, DEFAULT_HEIGHT);
+    };
+  }, []);
+
   useEffect(() => {
     if (gameStatus === 'playing' && withTimer) {
       setRemainingTime(999);
@@ -191,7 +191,6 @@ const GamePage: React.FC = () => {
     setRemainingTime(null);
   }, [stopTimer]);
 
-  // клик по любой клетке – победа
   const handleCellClick = () => {
     if (gameStatus === 'playing') {
       stopTimer();
@@ -211,7 +210,6 @@ const GamePage: React.FC = () => {
     return <h1 className="text-2xl font-bold text-gray-800"> Сапёр </h1>;
   };
 
-  // сетка отображается всегда
   const renderGrid = () => {
     const rows = [];
     for (let y = 0; y < height; y++) {
@@ -272,8 +270,8 @@ const GamePage: React.FC = () => {
 
 const App: React.FC = () => {
   const [settings, setSettings] = useState<GameSettings>({
-    width: 9,
-    height: 9,
+    width: 20,
+    height: 20,
     withTimer: false,
   });
 
