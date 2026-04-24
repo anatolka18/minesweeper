@@ -1,0 +1,14 @@
+{
+  "manifest_version": 3,
+  "name": "Сапёр",
+  "version": "1.0",
+  "description": "Классический сапёр в браузере",
+  "action": {
+    "default_title": "Сапёр"
+  },
+  "background": {
+    "service_worker": "src/background/index.ts",
+    "type": "module"
+  },
+  "permissions": ["windows"]
+}
