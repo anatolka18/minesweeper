@@ -5,7 +5,11 @@ export default {
     "./src/popup/**/*.{html,js,ts,jsx,tsx}",
   ],
   theme: {
-    extend: {},
+    extend: {
+      fontFamily: {
+        diplomatic: ['SicretmonopersonalBold', 'Monospace'],
+      },
+    },
   },
   plugins: [],
 }

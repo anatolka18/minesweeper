@@ -1,12 +1,48 @@
+let gameWindowId: number | null = null;
+
 chrome.action.onClicked.addListener(async () => {
-  const popupPath = import.meta.env.DEV ? 'src/popup/index.html' : 'popup.html';
+  if (gameWindowId !== null) {
+    try {
+      const existingWindow = await chrome.windows.get(gameWindowId);
+      if (existingWindow) {
+        await chrome.windows.update(gameWindowId, { focused: true });
+        return;
+      }
+    } catch {
+    }
+  }
+
+  const popupPath = import.meta.env.DEV
+    ? 'src/popup/index.html'
+    : 'popup.html';
   const popupUrl = chrome.runtime.getURL(popupPath);
 
-  await chrome.windows.create({
+  const newWindow = await chrome.windows.create({
     url: popupUrl,
     type: 'popup',
-    width: 850,
-    height: 700,
+    width: 600,
+    height: 400,
     focused: true,
   });
+
+  gameWindowId = newWindow.id!;
+
+  chrome.windows.onRemoved.addListener((closedWindowId) => {
+    if (closedWindowId === gameWindowId) {
+      gameWindowId = null;
+    }
+  });
+});
+
+chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  if (message.action === 'resizeGameWindow') {
+    if (gameWindowId && message.windowId === gameWindowId) {
+      chrome.windows.update(gameWindowId, {
+        width: message.width,   
+        height: message.height + 24, 
+      });
+    }
+    sendResponse({ success: true });
+  }
+  return false;
 });
