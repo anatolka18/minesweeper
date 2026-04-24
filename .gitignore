@@ -31,3 +31,5 @@ yarn-error.log*
 
 dist.pem
 dist.crx
+
+package-lock.json
