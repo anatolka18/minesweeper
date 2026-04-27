@@ -13,8 +13,7 @@ chrome.action.onClicked.addListener(async () => {
   }
 
   const popupPath = import.meta.env.DEV
-    ? 'src/popup/index.html'
-    : 'popup.html';
+    ? 'src/popup/index.html' : 'popup/index.html';
   const popupUrl = chrome.runtime.getURL(popupPath);
 
   const newWindow = await chrome.windows.create({

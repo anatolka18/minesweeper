@@ -139,7 +139,7 @@ const SettingsPage: React.FC = () => {
 const HEADER_HEIGHT = 48;
 const MAIN_PADDING = 16;
 const DEFAULT_WIDTH = 600;
-const DEFAULT_HEIGHT = 350;
+const DEFAULT_HEIGHT = 550;
 
 const GamePage: React.FC = () => {
   const navigate = useNavigate();
