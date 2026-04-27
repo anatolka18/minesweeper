@@ -21,7 +21,7 @@ chrome.action.onClicked.addListener(async () => {
     url: popupUrl,
     type: 'popup',
     width: 600,
-    height: 400,
+    height: 550,
     focused: true,
   });
 
