@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useRef, useCallback, useEffect } from 'react';
 import { MemoryRouter, Routes, Route, useNavigate } from 'react-router-dom';
 import { Board, generateBoard, revealCell, toggleFlag, checkWin, countFlags, defaultMinesCount } from './minesweeperLogic';
+import flagImage from './assets/flag.png';
+import mineImage from './assets/mine.png';
 
 interface GameSettings {
   width: number;
@@ -333,7 +335,13 @@ const GamePage: React.FC = () => {
 
         if (cell.revealed) {
           if (cell.mine) {
-            content = '💣';
+            content = (
+              <img
+                src={mineImage}
+                alt="mine"
+                style={{ width: cellSize, height: cellSize, imageRendering: 'auto' }}
+              />
+            );
             cellClass = 'border border-gray-400 bg-red-200';
           } else if (cell.adjacentMines > 0) {
             content = cell.adjacentMines;
@@ -343,7 +351,13 @@ const GamePage: React.FC = () => {
           }
         } else {
           if (cell.flagged) {
-            content = '🚩';
+            content = (
+              <img
+                src={flagImage}
+                alt="flag"
+                style={{ width: cellSize, height: cellSize, imageRendering: 'auto' }}
+              />
+            );
             cellClass = 'border border-gray-400 bg-amber-100';
           } else {
             cellClass = 'border border-gray-400 bg-white hover:bg-gray-100 cursor-pointer';
