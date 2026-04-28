@@ -1,8 +1,8 @@
 import React, { createContext, useContext, useState, useRef, useCallback, useEffect } from 'react';
 import { MemoryRouter, Routes, Route, useNavigate } from 'react-router-dom';
 import { Board, generateBoard, revealCell, toggleFlag, checkWin, countFlags, defaultMinesCount } from './minesweeperLogic';
-import flagImage from './assets/flag.png';
-import mineImage from './assets/mine.png';
+//import flagImage from './assets/flag.png';
+//import mineImage from './assets/mine.png';
 
 interface GameSettings {
   width: number;
@@ -136,6 +136,17 @@ const SettingsPage: React.FC = () => {
       </main>
     </div>
   );
+};
+
+const numberEmojis: { [key: number]: string } = {
+  1: '1️⃣',
+  2: '2️⃣',
+  3: '3️⃣',
+  4: '4️⃣',
+  5: '5️⃣',
+  6: '6️⃣',
+  7: '7️⃣',
+  8: '8️⃣',
 };
 
 const HEADER_HEIGHT = 48;
@@ -335,29 +346,17 @@ const GamePage: React.FC = () => {
 
         if (cell.revealed) {
           if (cell.mine) {
-            content = (
-              <img
-                src={mineImage}
-                alt="mine"
-                style={{ width: cellSize, height: cellSize, imageRendering: 'auto' }}
-              />
-            );
+            content = '💥';
             cellClass = 'border border-gray-400 bg-red-200';
           } else if (cell.adjacentMines > 0) {
-            content = cell.adjacentMines;
+            content = numberEmojis[cell.adjacentMines];
             cellClass = 'border border-gray-400 bg-gray-200';
           } else {
             cellClass = 'border border-gray-400 bg-gray-200';
           }
         } else {
           if (cell.flagged) {
-            content = (
-              <img
-                src={flagImage}
-                alt="flag"
-                style={{ width: cellSize, height: cellSize, imageRendering: 'auto' }}
-              />
-            );
+            content = '🚩';
             cellClass = 'border border-gray-400 bg-amber-100';
           } else {
             cellClass = 'border border-gray-400 bg-white hover:bg-gray-100 cursor-pointer';
