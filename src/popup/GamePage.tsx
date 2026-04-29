@@ -2,22 +2,18 @@ import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSettings } from './SettingsContext';
 import { Board, generateBoard, revealCell, toggleFlag, checkWin, countFlags, getMinesCount } from './minesweeperLogic';
-
-const numberEmojis: { [key: number]: string } = {
-  1: '1️⃣',
-  2: '2️⃣',
-  3: '3️⃣',
-  4: '4️⃣',
-  5: '5️⃣',
-  6: '6️⃣',
-  7: '7️⃣',
-  8: '8️⃣',
-};
+import {
+  TILE_UNCLEARED, TILE_FLAG, TILE_MINE,
+  TILE_0, TILE_1, TILE_2, TILE_3, TILE_4, TILE_5, TILE_6, TILE_7, TILE_8,
+  spriteToDataURL
+} from './sprites';
 
 const HEADER_HEIGHT = 48;
 const MAIN_PADDING = 16;
 const DEFAULT_WIDTH = 600;
 const DEFAULT_HEIGHT = 550;
+
+const DIGIT_SPRITES = [TILE_0, TILE_1, TILE_2, TILE_3, TILE_4, TILE_5, TILE_6, TILE_7, TILE_8];
 
 const GamePage: React.FC = () => {
   const navigate = useNavigate();
@@ -34,6 +30,24 @@ const GamePage: React.FC = () => {
 
   const [sizeDiff, setSizeDiff] = useState<{ x: number; y: number } | null>(null);
   const windowIdRef = useRef<number | null>(null);
+
+  const spriteCacheRef = useRef<Map<string, string>>(new Map());
+
+  useEffect(() => {
+    spriteCacheRef.current.clear();
+  }, [cellSize]);
+
+  const getSpriteSrc = useCallback(
+    (bits: number[], size: number, bg: string | null, pixel: string = 'black') => {
+      const key = `${bits.join(',')}-${size}-${bg}-${pixel}`;
+      const cache = spriteCacheRef.current;
+      if (cache.has(key)) return cache.get(key)!;
+      const url = spriteToDataURL(bits, size, bg, pixel);
+      cache.set(key, url);
+      return url;
+    },
+    []
+  );
 
   useEffect(() => {
     chrome.windows.getCurrent((win) => {
@@ -119,7 +133,6 @@ const GamePage: React.FC = () => {
         const newBoard = generateBoard(width, height, totalMines, { x, y });
         setBoard(newBoard);
         setBoardGenerated(true);
-
         revealCell(newBoard, x, y);
         if (checkWin(newBoard)) {
           setGameStatus('won');
@@ -130,13 +143,11 @@ const GamePage: React.FC = () => {
       }
 
       if (!board) return;
-
       const cell = board[y][x];
       if (cell.revealed || cell.flagged) return;
 
       const newBoard = board.map(row => row.map(c => ({ ...c })));
       const success = revealCell(newBoard, x, y);
-
       if (!success) {
         setGameStatus('lost');
         stopTimer();
@@ -144,7 +155,6 @@ const GamePage: React.FC = () => {
         setGameStatus('won');
         stopTimer();
       }
-
       setBoard(newBoard);
     },
     [gameStatus, boardGenerated, board, width, height, totalMines, stopTimer]
@@ -154,7 +164,6 @@ const GamePage: React.FC = () => {
     (e: React.MouseEvent, x: number, y: number) => {
       e.preventDefault();
       if (gameStatus !== 'playing' || !board) return;
-
       const newBoard = board.map(row => row.map(cell => ({ ...cell })));
       toggleFlag(newBoard, x, y);
       setBoard(newBoard);
@@ -165,86 +174,78 @@ const GamePage: React.FC = () => {
   const handleRestart = () => resetGame();
 
   const renderHeaderTitle = () => {
-    if (gameStatus === 'won')
-      return <h1 className="text-2xl font-bold text-green-600">Победа!</h1>;
-    if (gameStatus === 'lost')
-      return <h1 className="text-2xl font-bold text-red-600">Поражение</h1>;
-    if (withTimer && remainingTime !== null)
-      return <span className="text-2xl font-mono font-bold">{remainingTime}</span>;
+    if (gameStatus === 'won') return <h1 className="text-2xl font-bold text-green-600">Победа!</h1>;
+    if (gameStatus === 'lost') return <h1 className="text-2xl font-bold text-red-600">Поражение</h1>;
+    if (withTimer && remainingTime !== null) return <span className="text-2xl font-mono font-bold">{remainingTime}</span>;
     return <h1 className="text-2xl font-bold text-gray-800">Сапёр</h1>;
   };
 
   const renderGrid = () => {
-    const cellStyle = { width: cellSize, height: cellSize, boxSizing: 'border-box' as const };
-
-    if (!board) {
-      const rows = [];
-      for (let y = 0; y < height; y++) {
-        const cells = [];
-        for (let x = 0; x < width; x++) {
-          cells.push(
-            <div
-              key={`${x}-${y}`}
-              className="border border-gray-400 bg-white cursor-pointer hover:bg-gray-100"
-              style={cellStyle}
-              onClick={() => handleCellClick(x, y)}
-              onContextMenu={(e) => handleCellRightClick(e, x, y)}
-            />
-          );
-        }
-        rows.push(
-          <div key={y} style={{ display: 'flex' }}>
-            {cells}
-          </div>
-        );
-      }
-      return <div className="inline-block">{rows}</div>;
-    }
-
     const rows = [];
     for (let y = 0; y < height; y++) {
       const cells = [];
       for (let x = 0; x < width; x++) {
-        const cell = board[y][x];
-        let content: React.ReactNode = '';
-        let cellClass = 'border border-gray-400 bg-white';
+        const isRealBoard = !!board;
+        let bits: number[];
+        let bgColor: string | null = null;
+        let pixelColor = 'black';
+        let cellBg = '#c0c0c0'; // фон самой клетки (под спрайтом)
 
-        if (cell.revealed) {
-          if (cell.mine) {
-            content = '💥';
-            cellClass = 'border border-gray-400 bg-red-200';
-          } else if (cell.adjacentMines > 0) {
-            content = numberEmojis[cell.adjacentMines];
-            cellClass = 'border border-gray-400 bg-gray-200';
-          } else {
-            cellClass = 'border border-gray-400 bg-gray-200';
-          }
+        if (!isRealBoard) {
+          bits = TILE_UNCLEARED;
         } else {
-          if (cell.flagged) {
-            content = '🚩';
-            cellClass = 'border border-gray-400 bg-amber-100';
+          const cell = board![y][x];
+          if (!cell.revealed) {
+            bits = cell.flagged ? TILE_FLAG : TILE_UNCLEARED;
+            if (cell.flagged) {
+              pixelColor = '#FF0000';
+            }
           } else {
-            cellClass = 'border border-gray-400 bg-white hover:bg-gray-100 cursor-pointer';
+            if (cell.mine) {
+              bits = TILE_MINE;
+              cellBg = '#FF0000';
+            } else {
+              bits = DIGIT_SPRITES[cell.adjacentMines] || TILE_0;
+              cellBg = '#808080';
+            }
           }
         }
+
+        const src = getSpriteSrc(bits, cellSize, bgColor, pixelColor);
+
+        const isFirstRow = y === 0;
+        const isFirstCol = x === 0;
+
+        const cellStyle: React.CSSProperties = {
+          width: cellSize,
+          height: cellSize,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          borderWidth: '1px',
+          borderStyle: 'solid',
+          borderTopColor: '#ffffff',
+          borderLeftColor: '#ffffff',
+          borderBottomColor: '#808080',
+          borderRightColor: '#808080',
+          backgroundColor: cellBg,
+          boxSizing: 'border-box',
+          marginTop: isFirstRow ? '0' : '-1px',
+          marginLeft: isFirstCol ? '0' : '-1px',
+        };
 
         cells.push(
           <div
             key={`${x}-${y}`}
-            className={cellClass + ' flex items-center justify-center font-bold text-sm select-none'}
             style={cellStyle}
             onClick={() => handleCellClick(x, y)}
             onContextMenu={(e) => handleCellRightClick(e, x, y)}
           >
-            {content}
+            <img src={src} alt="" style={{ width: cellSize, height: cellSize, imageRendering: 'pixelated' }} />
           </div>
         );
       }
-      rows.push(
-        <div key={y} style={{ display: 'flex' }}>
-          {cells}
-        </div>
-      );
+      rows.push(<div key={y} style={{ display: 'flex' }}>{cells}</div>);
     }
 
     return <div className="inline-block">{rows}</div>;
@@ -253,14 +254,7 @@ const GamePage: React.FC = () => {
   return (
     <div className="h-full flex flex-col bg-amber-50">
       <header className="flex items-center justify-between px-4 py-3 border-b border-amber-200">
-        <button
-          onClick={() => navigate('/')}
-          className="w-10 h-10 flex items-center justify-center rounded hover:bg-amber-100 transition-colors text-xl"
-          title="Настройки"
-        >
-          ←
-        </button>
-
+        <button onClick={() => navigate('/')} className="w-10 h-10 flex items-center justify-center rounded hover:bg-amber-100 transition-colors text-xl" title="Настройки">←</button>
         <div className="flex items-center gap-4">
           {renderHeaderTitle()}
           {board && gameStatus === 'playing' && (
@@ -269,14 +263,7 @@ const GamePage: React.FC = () => {
             </span>
           )}
         </div>
-
-        <button
-          onClick={handleRestart}
-          className="w-10 h-10 flex items-center justify-center rounded hover:bg-amber-100 transition-colors text-xl"
-          title="Рестарт"
-        >
-          ↻
-        </button>
+        <button onClick={handleRestart} className="w-10 h-10 flex items-center justify-center rounded hover:bg-amber-100 transition-colors text-xl" title="Рестарт">↻</button>
       </header>
       <main className="flex-1 flex items-center justify-center p-2">
         {renderGrid()}
