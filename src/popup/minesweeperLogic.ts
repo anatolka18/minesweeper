@@ -12,6 +12,8 @@ interface Position {
   y: number;
 }
 
+export type Difficulty = 'light' | 'normal' | 'extreme';
+
 function createEmptyBoard(width: number, height: number): Board {
   const board: Board = [];
   for (let y = 0; y < height; y++) {
@@ -162,6 +164,18 @@ export function countFlags(board: Board): number {
   return flags;
 }
 
-export function defaultMinesCount(width: number, height: number): number {
-  return Math.max(1, Math.floor((width * height) * 0.15));
+export function getMinesCount(width: number, height: number, difficulty: Difficulty): number {
+  let percentage: number;
+  switch (difficulty) {
+    case 'light':
+      percentage = 0.10;
+      break;
+    case 'normal':
+      percentage = 0.15;
+      break;
+    case 'extreme':
+      percentage = 0.20;
+      break;
+  }
+  return Math.max(1, Math.floor(width * height * percentage));
 }

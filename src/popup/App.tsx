@@ -1,15 +1,14 @@
 import React, { createContext, useContext, useState, useRef, useCallback, useEffect } from 'react';
 import { MemoryRouter, Routes, Route, useNavigate } from 'react-router-dom';
-import { Board, generateBoard, revealCell, toggleFlag, checkWin, countFlags, defaultMinesCount } from './minesweeperLogic';
-//import flagImage from './assets/flag.png';
-//import mineImage from './assets/mine.png';
+import { Board, generateBoard, revealCell, toggleFlag, checkWin, countFlags, getMinesCount, Difficulty } from './minesweeperLogic';
 
 interface GameSettings {
   width: number;
   height: number;
   withTimer: boolean;
-  cellSize: number;       
-  timerDuration: number;  
+  cellSize: number;
+  timerDuration: number;
+  difficulty: Difficulty;
 }
 
 const SettingsContext = createContext<{
@@ -92,6 +91,45 @@ const SettingsPage: React.FC = () => {
             </div>
           </div>
 
+          <div className="space-y-2">
+            <div className="text-lg font-medium text-gray-700 mb-2">Сложность</div>
+            <div className="flex gap-6 items-center"> 
+              <label className="flex items-center gap-3 text-base"> 
+                <input
+                  type="radio"
+                  name="difficulty"
+                  value="light"
+                  checked={settings.difficulty === 'light'}
+                  onChange={() => setSettings({ ...settings, difficulty: 'light' })}
+                  className="h-6 w-6 text-amber-600" 
+                />
+                <span className="text-gray-700">Light --- 10%</span>
+              </label>
+              <label className="flex items-center gap-3 text-base">
+                <input
+                  type="radio"
+                  name="difficulty"
+                  value="normal"
+                  checked={settings.difficulty === 'normal'}
+                  onChange={() => setSettings({ ...settings, difficulty: 'normal' })}
+                  className="h-6 w-6 text-amber-600"
+                />
+                <span className="text-gray-700">Normal --- 15%</span>
+              </label>
+              <label className="flex items-center gap-3 text-base">
+                <input
+                  type="radio"
+                  name="difficulty"
+                  value="extreme"
+                  checked={settings.difficulty === 'extreme'}
+                  onChange={() => setSettings({ ...settings, difficulty: 'extreme' })}
+                  className="h-6 w-6 text-amber-600"
+                />
+                <span className="text-gray-700">Extreme --- 20%</span>
+              </label>
+            </div>
+          </div>
+
           <div className="flex items-center gap-3">
             <input
               type="checkbox"
@@ -157,7 +195,7 @@ const DEFAULT_HEIGHT = 550;
 const GamePage: React.FC = () => {
   const navigate = useNavigate();
   const { settings } = useSettings();
-  const { width, height, withTimer, cellSize, timerDuration } = settings;
+  const { width, height, withTimer, cellSize, timerDuration, difficulty } = settings;
 
   const [gameStatus, setGameStatus] = useState<'playing' | 'won' | 'lost'>('playing');
   const [remainingTime, setRemainingTime] = useState<number | null>(null);
@@ -165,7 +203,7 @@ const GamePage: React.FC = () => {
 
   const [board, setBoard] = useState<Board | null>(null);
   const [boardGenerated, setBoardGenerated] = useState(false);
-  const totalMines = defaultMinesCount(width, height);
+  const totalMines = getMinesCount(width, height, difficulty);
 
   const [sizeDiff, setSizeDiff] = useState<{ x: number; y: number } | null>(null);
   const windowIdRef = useRef<number | null>(null);
@@ -393,7 +431,7 @@ const GamePage: React.FC = () => {
           className="w-10 h-10 flex items-center justify-center rounded hover:bg-amber-100 transition-colors text-xl"
           title="Настройки"
         >
-          ←
+          \\
         </button>
 
         <div className="flex items-center gap-4">
@@ -410,7 +448,7 @@ const GamePage: React.FC = () => {
           className="w-10 h-10 flex items-center justify-center rounded hover:bg-amber-100 transition-colors text-xl"
           title="Рестарт"
         >
-          ↻
+          //
         </button>
       </header>
       <main className="flex-1 flex items-center justify-center p-2">
@@ -427,6 +465,7 @@ const App: React.FC = () => {
     withTimer: false,
     cellSize: 25,
     timerDuration: 999,
+    difficulty: 'normal',
   });
 
   return (
